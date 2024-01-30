@@ -16,6 +16,8 @@ TILE = 284
 ANIMATION_SPEED = 0.18  # pixels per millisecond
 WIN_WIDTH = TILE * 2  # BG image size: 284x512 px; tiled twice
 WIN_HEIGHT = 512
+BRIGHT = (255, 255, 255)
+FONTSIZE = 32
 
 
 class Bird(pygame.sprite.Sprite):
@@ -250,47 +252,6 @@ class PipePair(pygame.sprite.Sprite):
         return pygame.sprite.collide_mask(self, bird)
 
 
-def load_images():
-    """Load all images required by the game and return a dict of them.
-
-    The returned dict has the following keys:
-    background: The game's background image.
-    bird-wingup: An image of the bird with its wing pointing upward.
-        Use this and bird-wingdown to create a flapping bird.
-    bird-wingdown: An image of the bird with its wing pointing downward.
-        Use this and bird-wingup to create a flapping bird.
-    pipe-end: An image of a pipe's end piece (the slightly wider bit).
-        Use this and pipe-body to make pipes.
-    pipe-body: An image of a slice of a pipe's body.  Use this and
-        pipe-body to make pipes.
-    """
-
-    def load_image(img_file_name) -> pygame.surface.Surface:
-        """Return the loaded pygame image with the specified file name.
-
-        This function looks for images in the game's images folder
-        (dirname(__file__)/images/). All images are converted before being
-        returned to speed up blitting.
-
-        Arguments:
-        img_file_name: The file name (including its extension, e.g.
-            '.png') of the required image, without a file path.
-        """
-        # Specify the correct path to your images
-        file_name = os.path.join(os.path.dirname(__file__), "images", img_file_name)
-        img = pygame.image.load(file_name)
-        img.convert()
-        return img
-
-    return {
-        "background": load_image("background.png"),
-        "pipe-end": load_image("pipe_end.png"),
-        "pipe-body": load_image("pipe_body.png"),
-        "bird-wingup": load_image("bird_wing_up.png"),
-        "bird-wingdown": load_image("bird_wing_down.png"),
-    }
-
-
 def frames_to_msec(frames, fps=FPS) -> float:
     """Convert frames to milliseconds at the specified framerate.
 
@@ -312,14 +273,14 @@ def msec_to_frames(milliseconds, fps=FPS) -> float:
 
 
 class Game:
-    def __init__(self):
+    def __init__(self) -> None:
         pygame.init()
 
         self.display_surface = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
         pygame.display.set_caption("Pygame Flappy Bird")
 
         self.clock = pygame.time.Clock()
-        self.score_font = pygame.font.SysFont(None, 32, bold=True)  # default font
+        self.score_font = pygame.font.SysFont(None, FONTSIZE, bold=True)  # default font
         self.images = self.load_images()
 
         # the bird stays in the same x position, so bird.x is a constant
@@ -358,7 +319,7 @@ class Game:
     def is_ended(self):
         return self.done
 
-    def handle_events(self):
+    def handle_events(self) -> None:
         for e in pygame.event.get():
             if e.type == QUIT or (e.type == KEYUP and e.key == K_ESCAPE):
                 self.done = True
@@ -370,7 +331,7 @@ class Game:
             ):
                 self.bird.msec_to_climb = Bird.CLIMB_DURATION
 
-    def update_world(self):
+    def update_world(self) -> None:
         if not (
             self.paused or self.frame_clock % msec_to_frames(PipePair.ADD_INTERVAL)
         ):
@@ -399,7 +360,7 @@ class Game:
                     self.score += 1
                     p.score_counted = True
 
-    def render_world(self, clock):
+    def render_world(self) -> None:
         for x in (0, WIN_WIDTH / 2):
             self.display_surface.blit(self.images["background"], (x, 0))
 
@@ -408,7 +369,7 @@ class Game:
 
         self.display_surface.blit(self.bird.image, self.bird.rect)
 
-        score_surface = self.score_font.render(str(self.score), True, (255, 255, 255))
+        score_surface = self.score_font.render(str(self.score), True, BRIGHT)
         score_x = WIN_WIDTH / 2 - score_surface.get_width() / 2
         self.display_surface.blit(score_surface, (score_x, PipePair.PIECE_HEIGHT))
 
@@ -417,11 +378,11 @@ class Game:
 
 
 if __name__ == "__main__":
-    screen = pygame.display.set_mode((284 * 2, 512))
+    screen = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
     game = Game()
 
     while not game.is_ended():
         game.handle_events()
         game.update_world()
-        game.render_world(game.clock)
+        game.render_world()
         game.clock.tick(FPS)
