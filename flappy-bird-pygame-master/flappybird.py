@@ -12,8 +12,9 @@ from pygame.locals import *
 
 
 FPS = 60
+TILE = 284
 ANIMATION_SPEED = 0.18  # pixels per millisecond
-WIN_WIDTH = 284 * 2  # BG image size: 284x512 px; tiled twice
+WIN_WIDTH = TILE * 2  # BG image size: 284x512 px; tiled twice
 WIN_HEIGHT = 512
 
 
@@ -314,13 +315,7 @@ class Game:
     def __init__(self):
         pygame.init()
 
-        self.WIN_WIDTH = 284 * 2
-        self.WIN_HEIGHT = 512
-        self.FPS = 60
-
-        self.display_surface = pygame.display.set_mode(
-            (self.WIN_WIDTH, self.WIN_HEIGHT)
-        )
+        self.display_surface = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
         pygame.display.set_caption("Pygame Flappy Bird")
 
         self.clock = pygame.time.Clock()
@@ -331,7 +326,7 @@ class Game:
         # center bird on screen
         self.bird = Bird(
             50,
-            int(self.WIN_HEIGHT / 2 - Bird.HEIGHT / 2),
+            int(WIN_HEIGHT / 2 - Bird.HEIGHT / 2),
             2,
             (self.images["bird-wingup"], self.images["bird-wingdown"]),
         )
@@ -387,7 +382,7 @@ class Game:
             if (
                 pipe_collision
                 or 0 >= self.bird.y
-                or self.bird.y >= self.WIN_HEIGHT - Bird.HEIGHT
+                or self.bird.y >= WIN_HEIGHT - Bird.HEIGHT
             ):
                 self.done = True
 
@@ -404,8 +399,8 @@ class Game:
                     self.score += 1
                     p.score_counted = True
 
-    def render_world(self):
-        for x in (0, self.WIN_WIDTH / 2):
+    def render_world(self, clock):
+        for x in (0, WIN_WIDTH / 2):
             self.display_surface.blit(self.images["background"], (x, 0))
 
         for p in self.pipes:
@@ -414,18 +409,11 @@ class Game:
         self.display_surface.blit(self.bird.image, self.bird.rect)
 
         score_surface = self.score_font.render(str(self.score), True, (255, 255, 255))
-        score_x = self.WIN_WIDTH / 2 - score_surface.get_width() / 2
+        score_x = WIN_WIDTH / 2 - score_surface.get_width() / 2
         self.display_surface.blit(score_surface, (score_x, PipePair.PIECE_HEIGHT))
 
         pygame.display.flip()
         self.frame_clock += 1
-
-    def update(self):
-        self.handle_events()
-        self.update_world()
-
-    def render(self):
-        self.render_world()
 
 
 if __name__ == "__main__":
@@ -433,6 +421,7 @@ if __name__ == "__main__":
     game = Game()
 
     while not game.is_ended():
-        game.update()
-        game.render()
-        game.clock.tick(game.FPS)
+        game.handle_events()
+        game.update_world()
+        game.render_world(game.clock)
+        game.clock.tick(FPS)
