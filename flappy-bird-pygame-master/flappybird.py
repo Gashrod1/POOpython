@@ -97,7 +97,7 @@ class Bird(pygame.sprite.Sprite):
             self.y += Bird.SINK_SPEED * frames_to_msec(delta_frames)
 
     @property
-    def image(self):
+    def image(self) -> pygame.surface.Surface:
         """Get a Surface containing this bird's image.
 
         This will decide whether to return an image where the bird's
@@ -107,11 +107,12 @@ class Bird(pygame.sprite.Sprite):
         """
         if pygame.time.get_ticks() % 500 >= 250:
             return self._img_wingup
+
         else:
             return self._img_wingdown
 
     @property
-    def mask(self):
+    def mask(self) -> pygame.mask.Mask:
         """Get a bitmask for use in collision detection.
 
         The bitmask excludes all pixels in self.image with a
@@ -122,7 +123,7 @@ class Bird(pygame.sprite.Sprite):
             return self._mask_wingdown
 
     @property
-    def rect(self):
+    def rect(self) -> pygame.rect.Rect:
         """Get the bird's position, width, and height, as a pygame.Rect."""
         return Rect(self.x, self.y, Bird.WIDTH, Bird.HEIGHT)
 
@@ -210,22 +211,22 @@ class PipePair(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     @property
-    def top_height_px(self):
+    def top_height_px(self) -> int:
         """Get the top pipe's height, in pixels."""
         return self.top_pieces * PipePair.PIECE_HEIGHT
 
     @property
-    def bottom_height_px(self):
+    def bottom_height_px(self) -> int:
         """Get the bottom pipe's height, in pixels."""
         return self.bottom_pieces * PipePair.PIECE_HEIGHT
 
     @property
-    def visible(self):
+    def visible(self) -> bool:
         """Get whether this PipePair on screen, visible to the player."""
         return -PipePair.WIDTH < self.x < WIN_WIDTH
 
     @property
-    def rect(self):
+    def rect(self) -> pygame.rect.Rect:
         """Get the Rect which contains this PipePair."""
         return Rect(self.x, 0, PipePair.WIDTH, PipePair.PIECE_HEIGHT)
 
@@ -263,7 +264,7 @@ def load_images():
         pipe-body to make pipes.
     """
 
-    def load_image(img_file_name):
+    def load_image(img_file_name) -> pygame.surface.Surface:
         """Return the loaded pygame image with the specified file name.
 
         This function looks for images in the game's images folder
@@ -274,9 +275,7 @@ def load_images():
         img_file_name: The file name (including its extension, e.g.
             '.png') of the required image, without a file path.
         """
-        # Look for images relative to this script, so we don't have to "cd" to
-        # the script's directory before running it.
-        # See also: https://github.com/TimoWilken/flappy-bird-pygame/pull/3
+        # Specify the correct path to your images
         file_name = os.path.join(os.path.dirname(__file__), "images", img_file_name)
         img = pygame.image.load(file_name)
         img.convert()
@@ -286,14 +285,12 @@ def load_images():
         "background": load_image("background.png"),
         "pipe-end": load_image("pipe_end.png"),
         "pipe-body": load_image("pipe_body.png"),
-        # images for animating the flapping bird -- animated GIFs are
-        # not supported in pygame
         "bird-wingup": load_image("bird_wing_up.png"),
         "bird-wingdown": load_image("bird_wing_down.png"),
     }
 
 
-def frames_to_msec(frames, fps=FPS):
+def frames_to_msec(frames, fps=FPS) -> float:
     """Convert frames to milliseconds at the specified framerate.
 
     Arguments:
@@ -303,7 +300,7 @@ def frames_to_msec(frames, fps=FPS):
     return 1000.0 * frames / fps
 
 
-def msec_to_frames(milliseconds, fps=FPS):
+def msec_to_frames(milliseconds, fps=FPS) -> float:
     """Convert milliseconds to frames at the specified framerate.
 
     Arguments:
@@ -313,94 +310,106 @@ def msec_to_frames(milliseconds, fps=FPS):
     return fps * milliseconds / 1000.0
 
 
-def main():
-    """The application's entry point.
+class FlappyBirdGame:
+    def __init__(self):
+        pygame.init()
 
-    If someone executes this module (instead of importing it, for
-    example), this function is called.
-    """
+        self.WIN_WIDTH = 600
+        self.WIN_HEIGHT = 400
+        self.FPS = 30
 
-    pygame.init()
+        self.display_surface = pygame.display.set_mode(
+            (self.WIN_WIDTH, self.WIN_HEIGHT)
+        )
+        pygame.display.set_caption("Pygame Flappy Bird")
 
-    display_surface = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
-    pygame.display.set_caption("Pygame Flappy Bird")
+        self.clock = pygame.time.Clock()
+        self.score_font = pygame.font.SysFont(None, 32, bold=True)
+        self.images = self.load_images()
 
-    clock = pygame.time.Clock()
-    score_font = pygame.font.SysFont(None, 32, bold=True)  # default font
-    images = load_images()
+        self.bird = Bird(
+            50,
+            int(self.WIN_HEIGHT / 2 - Bird.HEIGHT / 2),
+            2,
+            (self.images["bird-wingup"], self.images["bird-wingdown"]),
+        )
 
-    # the bird stays in the same x position, so bird.x is a constant
-    # center bird on screen
-    bird = Bird(
-        50,
-        int(WIN_HEIGHT / 2 - Bird.HEIGHT / 2),
-        2,
-        (images["bird-wingup"], images["bird-wingdown"]),
-    )
+        self.pipes = deque()
 
-    pipes = deque()
+        self.frame_clock = 0
+        self.score = 0
+        self.done = False
+        self.paused = False
 
-    frame_clock = 0  # this counter is only incremented if the game isn't paused
-    score = 0
-    done = paused = False
-    while not done:
-        clock.tick(FPS)
+    def load_images(self):
+        return load_images()
 
-        # Handle this 'manually'.  If we used pygame.time.set_timer(),
-        # pipe addition would be messed up when paused.
-        if not (paused or frame_clock % msec_to_frames(PipePair.ADD_INTERVAL)):
-            pp = PipePair(images["pipe-end"], images["pipe-body"])
-            pipes.append(pp)
+    def run(self):
+        while not self.done:
+            self.clock.tick(self.FPS)
 
-        for e in pygame.event.get():
-            if e.type == QUIT or (e.type == KEYUP and e.key == K_ESCAPE):
-                done = True
-                break
-            elif e.type == KEYUP and e.key in (K_PAUSE, K_p):
-                paused = not paused
-            elif e.type == MOUSEBUTTONUP or (
-                e.type == KEYUP and e.key in (K_UP, K_RETURN, K_SPACE)
+            if not (
+                self.paused or self.frame_clock % msec_to_frames(PipePair.ADD_INTERVAL)
             ):
-                bird.msec_to_climb = Bird.CLIMB_DURATION
+                pp = PipePair(self.images["pipe-end"], self.images["pipe-body"])
+                self.pipes.append(pp)
 
-        if paused:
-            continue  # don't draw anything
+            for event in pygame.event.get():
+                if event.type == QUIT or (
+                    event.type == KEYUP and event.key == K_ESCAPE
+                ):
+                    self.done = True
+                    break
+                elif event.type == KEYUP and event.key in (K_PAUSE, K_p):
+                    self.paused = not self.paused
+                elif event.type == MOUSEBUTTONUP or (
+                    event.type == KEYUP and event.key in (K_UP, K_RETURN, K_SPACE)
+                ):
+                    self.bird.msec_to_climb = Bird.CLIMB_DURATION
 
-        # check for collisions
-        pipe_collision = any(p.collides_with(bird) for p in pipes)
-        if pipe_collision or 0 >= bird.y or bird.y >= WIN_HEIGHT - Bird.HEIGHT:
-            done = True
+            if self.paused:
+                continue
 
-        for x in (0, WIN_WIDTH / 2):
-            display_surface.blit(images["background"], (x, 0))
+            # check for collisions
+            pipe_collision = any(p.collides_with(self.bird) for p in self.pipes)
+            if (
+                pipe_collision
+                or 0 >= self.bird.y
+                or self.bird.y >= self.WIN_HEIGHT - Bird.HEIGHT
+            ):
+                self.done = True
 
-        while pipes and not pipes[0].visible:
-            pipes.popleft()
+            for x in (0, self.WIN_WIDTH / 2):
+                self.display_surface.blit(self.images["background"], (x, 0))
 
-        for p in pipes:
-            p.update()
-            display_surface.blit(p.image, p.rect)
+            while self.pipes and not self.pipes[0].visible:
+                self.pipes.popleft()
 
-        bird.update()
-        display_surface.blit(bird.image, bird.rect)
+            for p in self.pipes:
+                p.update()
+                self.display_surface.blit(p.image, p.rect)
 
-        # update and display score
-        for p in pipes:
-            if p.x + PipePair.WIDTH < bird.x and not p.score_counted:
-                score += 1
-                p.score_counted = True
+            self.bird.update()
+            self.display_surface.blit(self.bird.image, self.bird.rect)
 
-        score_surface = score_font.render(str(score), True, (255, 255, 255))
-        score_x = WIN_WIDTH / 2 - score_surface.get_width() / 2
-        display_surface.blit(score_surface, (score_x, PipePair.PIECE_HEIGHT))
+            for p in self.pipes:
+                if p.x + PipePair.WIDTH < self.bird.x and not p.score_counted:
+                    self.score += 1
+                    p.score_counted = True
 
-        pygame.display.flip()
-        frame_clock += 1
-    print("Game over! Score: %i" % score)
-    pygame.quit()
+            score_surface = self.score_font.render(
+                str(self.score), True, (255, 255, 255)
+            )
+            score_x = self.WIN_WIDTH / 2 - score_surface.get_width() / 2
+            self.display_surface.blit(score_surface, (score_x, PipePair.PIECE_HEIGHT))
+
+            pygame.display.flip()
+            self.frame_clock += 1
+
+        print("Game over! Score: %i" % self.score)
+        pygame.quit()
 
 
 if __name__ == "__main__":
-    # If this module had been imported, __name__ would be 'flappybird'.
-    # It was executed (e.g. by double-clicking the file), so call main.
-    main()
+    game = FlappyBirdGame()
+    game.run()
