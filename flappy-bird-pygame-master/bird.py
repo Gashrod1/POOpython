@@ -5,6 +5,7 @@ from converter import *
 
 
 FPS = 60
+WING_FLAPPING_PERIOD = 500
 
 
 class Bird(pygame.sprite.Sprite):
@@ -95,24 +96,22 @@ class Bird(pygame.sprite.Sprite):
         based on pygame.time.get_ticks().  This will animate the flapping
         bird, even though pygame doesn't support animated GIFs.
         """
-        if pygame.time.get_ticks() % 500 >= 250:
-            return self._img_wingup
+        return (
+            self._img_wingup
+            if pygame.time.get_ticks() % WING_FLAPPING_PERIOD
+            >= WING_FLAPPING_PERIOD / 2
+            else self._img_wingdown
+        )
 
-        else:
-            return self._img_wingdown
-
-    @property
+    """@property
     def mask(self) -> pygame.mask.Mask:
-        """Get a bitmask for use in collision detection.
-
-        The bitmask excludes all pixels in self.image with a
-        transparency greater than 127."""
-        if pygame.time.get_ticks() % 500 >= 250:
-            return self._mask_wingup
-        else:
-            return self._mask_wingdown
+        return (
+            self._mask_wingup
+            if pygame.time.get_ticks() % WING_FLAPPING_PERIOD
+            >= WING_FLAPPING_PERIOD / 2
+            else self._mask_wingdown
+        )
 
     @property
     def rect(self) -> pygame.rect.Rect:
-        """Get the bird's position, width, and height, as a pygame.Rect."""
-        return Rect(self.x, self.y, Bird.WIDTH, Bird.HEIGHT)
+        return Rect(self.x, self.y, Bird.WIDTH, Bird.HEIGHT)"""

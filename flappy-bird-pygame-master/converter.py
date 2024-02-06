@@ -1,3 +1,6 @@
+MS_PER_SEC = 1000.0
+
+
 def frames_to_msec(frames, fps) -> float:
     """Convert frames to milliseconds at the specified framerate.
 
@@ -5,7 +8,7 @@ def frames_to_msec(frames, fps) -> float:
     frames: How many frames to convert to milliseconds.
     fps: The framerate to use for conversion.  Default: FPS.
     """
-    return 1000.0 * frames / fps
+    return MS_PER_SEC * frames / fps
 
 
 def msec_to_frames(milliseconds, fps) -> float:
@@ -15,4 +18,4 @@ def msec_to_frames(milliseconds, fps) -> float:
     milliseconds: How many milliseconds to convert to frames.
     fps: The framerate to use for conversion.  Default: FPS.
     """
-    return fps * milliseconds / 1000.0
+    return fps * milliseconds / MS_PER_SEC
